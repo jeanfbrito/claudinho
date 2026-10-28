@@ -22,6 +22,7 @@ CLAUDINHO_DIR="${CLAUDINHO_DIR:-$HOME/.config/claudinho}"
 CLAUDINHO_DEFAULT_FLAGS=(--dangerously-skip-permissions --chrome)
 
 _claudinho_bin() {
+  emulate -L zsh
   local bin
   bin="$(whence -p claude 2>/dev/null)"
   if [[ -z "$bin" ]]; then
@@ -32,6 +33,7 @@ _claudinho_bin() {
 }
 
 _claudinho_current() {
+  emulate -L zsh
   if [[ -n "$CLAUDINHO_PROVIDER" ]]; then
     printf '%s' "$CLAUDINHO_PROVIDER"
   elif [[ -r "$CLAUDINHO_DIR/current" ]]; then
@@ -39,9 +41,19 @@ _claudinho_current() {
   fi
 }
 
-_claudinho_file() { printf '%s' "$CLAUDINHO_DIR/providers/$1.env"; }
+_claudinho_file() { emulate -L zsh; printf '%s' "$CLAUDINHO_DIR/providers/$1.env"; }
+
+# A provider name is a file name: letters, digits, dot, dash, underscore.
+_claudinho_valid() {
+  emulate -L zsh
+  if [[ ! "$1" =~ '^[A-Za-z0-9_-][A-Za-z0-9._-]*$' ]]; then
+    echo "claudinho: bad provider name '$1'. Use letters, digits, '.', '-' or '_'." >&2
+    return 1
+  fi
+}
 
 _claudinho_names() {
+  emulate -L zsh
   local f
   for f in "$CLAUDINHO_DIR"/providers/*.env(N); do
     printf '%s\n' "${${f:t}%.env}"
@@ -49,6 +61,7 @@ _claudinho_names() {
 }
 
 claudinho() {
+  emulate -L zsh
   local name file bin
   name="$(_claudinho_current)"
   if [[ -z "$name" ]]; then
@@ -56,6 +69,7 @@ claudinho() {
     claudinho-switch >&2
     return 1
   fi
+  _claudinho_valid "$name" || return 1
   file="$(_claudinho_file "$name")"
   if [[ ! -r "$file" ]]; then
     echo "claudinho: provider '$name' has no file at $file" >&2
@@ -79,6 +93,7 @@ claudinho() {
 }
 
 claudinho-switch() {
+  emulate -L zsh
   local cmd="$1" name file current
   current="$(_claudinho_current)"
   case "$cmd" in
@@ -91,19 +106,22 @@ claudinho-switch() {
       fi
       for name in "${names[@]}"; do
         mark=" "; [[ "$name" == "$current" ]] && mark="*"
-        tok="$(zsh -fc "source '$(_claudinho_file "$name")'; printf %s \"\${ANTHROPIC_AUTH_TOKEN:+ok}\"")"
+        # The path goes in as $1, so no quote in it can break the command.
+        tok="$(zsh -fc 'source "$1"; printf %s "${ANTHROPIC_AUTH_TOKEN:+ok}"' _ "$(_claudinho_file "$name")")"
         printf '%s %-12s key:%-3s %s\n' "$mark" "$name" "${tok:-MISSING}" \
-          "$(zsh -fc "source '$(_claudinho_file "$name")'; printf '%s  %s' \"\$ANTHROPIC_BASE_URL\" \"\$ANTHROPIC_MODEL\"")"
+          "$(zsh -fc 'source "$1"; printf "%s  %s" "$ANTHROPIC_BASE_URL" "$ANTHROPIC_MODEL"' _ "$(_claudinho_file "$name")")"
       done
       ;;
     show)
       [[ -z "$current" ]] && { echo "no active provider" >&2; return 1; }
+      _claudinho_valid "$current" || return 1
       echo "# $(_claudinho_file "$current")"
       sed -E 's/^(export ANTHROPIC_AUTH_TOKEN=).*/\1"<hidden>"/' "$(_claudinho_file "$current")"
       ;;
     add)
       name="$2"
       [[ -z "$name" ]] && { echo "usage: claudinho-switch add <name>" >&2; return 1; }
+      _claudinho_valid "$name" || return 1
       file="$(_claudinho_file "$name")"
       [[ -e "$file" ]] && { echo "$file already exists" >&2; return 1; }
       mkdir -p "$CLAUDINHO_DIR/providers"
@@ -114,7 +132,9 @@ claudinho-switch() {
     bin)  _claudinho_bin; echo ;;
     dir)  echo "$CLAUDINHO_DIR" ;;
     *)
-      name="$cmd"; file="$(_claudinho_file "$name")"
+      name="$cmd"
+      _claudinho_valid "$name" || return 1
+      file="$(_claudinho_file "$name")"
       if [[ ! -r "$file" ]]; then
         echo "claudinho: no provider '$name'. Known:" >&2
         _claudinho_names >&2
