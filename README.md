@@ -45,6 +45,11 @@ Runtime state lives outside the repo:
 | `~/.config/claudinho/providers/<name>.env` | One file per provider, mode 600, with its API key. |
 | `~/.config/claudinho/current` | Name of the active provider. |
 
+`claudinho` reads only these installed files. An edit to
+`providers/<name>.env` in the clone does not change an installed provider,
+because the installer copies a provider only when it does not exist yet.
+To change a model, edit the installed file.
+
 ## Install
 
 1. Clone the repo and run `install.sh` from the clone. It appends one
@@ -144,32 +149,35 @@ It serves the OpenAI GPT-6 and GPT-6.1 Codex models through an
 Anthropic-compatible endpoint. No local proxy is required. The base URL
 has no `/v1` suffix because Claude Code appends `/v1/messages`.
 Keep the gateway key in the installed provider file, not in this repo. A model id
-is `cx/gpt-<version>-<tier>-<effort>`, for example `cx/gpt-6.1-sol-high`.
+is `cx/gpt-<version>-<tier>-<effort>`, for example `cx/gpt-6.1-sol-max`.
 The tiers are Astra, Sol, Terra and Luna, from strongest to cheapest. The
 effort suffix is `low`, `medium`, `high`, `xhigh`, `max` or `ultra`.
 The proxy rejects an unknown suffix with a catalog error.
 
 | Slot | Model |
 | --- | --- |
-| Session default | `cx/gpt-6.1-sol-high` |
-| opus | `cx/gpt-6.1-sol-xhigh` |
-| fable | `cx/gpt-6-astra-high` |
-| sonnet | `cx/gpt-6.1-terra-medium` |
+| Session default | `cx/gpt-6.1-sol-max` |
+| opus | `cx/gpt-6.1-sol-max` |
+| fable | `cx/gpt-6-astra-max` |
+| sonnet | `cx/gpt-6.1-sol-medium` |
 | haiku and background | `cx/gpt-6-luna-low` |
 
-Sol is the coding default at a fifth of Astra's price. So the opus slot
-stays on Sol at `xhigh`, and only the fable slot escalates to Astra. Luna
-is 20 times cheaper than Sol and handles background calls. Terra costs half
-of Sol, so the sonnet slot, which runs most subagents, uses Terra.
+Sol is the coding default at a fifth of Astra's price. So the session
+default and the opus slot use Sol at `max`, and only the fable slot
+escalates to Astra, also at `max`. Luna is 20 times cheaper than Sol and
+handles background calls. The sonnet slot, which runs most subagents, uses
+Sol at `medium`.
 
-Sol and Terra have 6.1 versions, so their slots use 6.1. Astra and Luna
-have no 6.1 version yet, so they stay on 6.
+Sol has a 6.1 version, so its slots use 6.1. Astra and Luna have no 6.1
+version yet, so they stay on 6.
 
 The file also sets the window to 1M tokens. All four models have about
 1.05M, and the proxy accepted a 260K-token request in a test.
 Auto-compact runs at 270K, because OpenAI bills input above 272K at a
-higher rate. Non-essential traffic is off, so a GPT-6 session sends
-nothing to Anthropic. Updates still happen when plain `claude` runs.
+higher rate. The `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` line is
+commented out, so a GPT-6 session can send non-essential traffic to
+Anthropic, such as telemetry, error reports and update checks. Remove the
+`#` to stop that traffic.
 
 ### The Grok provider
 
