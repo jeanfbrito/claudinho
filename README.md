@@ -35,6 +35,8 @@ Add others with `claudinho-switch add`.
 | `providers/grok.env` | Provider for Grok 4.7 through OmniRoute. |
 | `providers/template.env` | Starting point for a new provider. |
 | `install.sh` | Adds the `source` line to `~/.zshrc` and seeds `~/.config/claudinho`. |
+| `claudinho.ps1` | Windows port of `claudinho.zsh` for PowerShell 5.1 and 7. Dot-sourced from `$PROFILE`. |
+| `install.ps1` | Windows port of `install.sh`. Adds the line to `$PROFILE` and seeds `~\.config\claudinho`. |
 
 Runtime state lives outside the repo:
 
@@ -52,6 +54,40 @@ Runtime state lives outside the repo:
    `ANTHROPIC_AUTH_TOKEN` line.
 3. Open a new shell, or run `source ~/.zshrc`.
 4. Run `claudinho-switch`. The active provider shows `key:ok`.
+
+### Windows
+
+`claudinho.ps1` has the same commands and reads the same provider files as
+the zsh version. It runs in Windows PowerShell 5.1 and in PowerShell 7.
+
+1. Clone the repo and run the installer from the clone:
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\install.ps1
+   ```
+
+   It adds one dot-source line to `$PROFILE`, copies each provider from
+   `providers\` that does not exist yet into `~\.config\claudinho\providers`,
+   and makes the first one active. Each provider file is readable only by
+   the current user (the Windows form of mode 600).
+2. Put the API key in `~\.config\claudinho\providers\cx.env` on the
+   `ANTHROPIC_AUTH_TOKEN` line. A provider file copied from a Mac works
+   with no change.
+3. Open a new PowerShell window.
+4. Run `claudinho-switch`. The active provider shows `key:ok`.
+
+Differences from zsh:
+
+- To run one provider once, use `codexinho`, `grokinho`, or
+  `$env:CLAUDINHO_PROVIDER = '<name>'`. Remove the variable after the run.
+- The PowerShell version reads the provider file and does not run it. Only
+  lines of the form `export NAME=value` count. A quoted value is
+  literal: `$VAR` in a value is not expanded.
+- PowerShell cannot start a native command in a subshell. `claudinho`
+  sets the variables in the current process, starts Claude Code, and
+  restores the earlier values when Claude Code exits.
+- Keep `claudinho.ps1` and `install.ps1` ASCII-only. Windows PowerShell 5.1
+  reads a file without a BOM in the ANSI code page.
 
 ## Commands
 
@@ -191,6 +227,8 @@ variables are gone.
 
 **`command not found: claudinho`**
 The file is not sourced in this shell. Run `source ~/.zshrc`.
+On Windows (`The term 'claudinho' is not recognized`), open a new
+PowerShell window, or run `. $PROFILE`.
 
 **`no active provider`**
 Run `claudinho-switch <name>` with one of the listed names.
