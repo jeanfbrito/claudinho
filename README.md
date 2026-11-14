@@ -5,6 +5,16 @@ with `--dangerously-skip-permissions --chrome` on whichever provider is
 active. `claudinho-switch` changes the provider.
 Plain `claude` is never touched.
 
+The shell aliases select a provider without changing the active selection:
+
+```sh
+codexinho                 # cx / Codex through OmniRoute
+grokinho                 # Grok through OmniRoute
+```
+
+Both aliases accept the same arguments as `claudinho`.
+The original `claudinho` command remains available.
+
 ```sh
 claudinho-switch          # list providers, * marks the active one
 claudinho-switch cx       # make cx active
@@ -13,14 +23,16 @@ claudinho-switch <name>   # make another provider active
 claudinho                 # same command, now on that provider
 ```
 
-The repo ships one provider, `cx`. Add others with `claudinho-switch add`.
+The repo ships two providers: `cx` and `grok`. Both use OmniRoute on Proxmox.
+Add others with `claudinho-switch add`.
 
 ## Files
 
 | Path | Purpose |
 | --- | --- |
 | `claudinho.zsh` | The `claudinho` and `claudinho-switch` functions. Sourced from `~/.zshrc`. |
-| `providers/cx.env` | Provider for the local cx proxy with the GPT-6 and GPT-6.1 models. |
+| `providers/cx.env` | Provider for OmniRoute on Proxmox with the GPT-6 and GPT-6.1 models. |
+| `providers/grok.env` | Provider for Grok 4.7 through OmniRoute. |
 | `providers/template.env` | Starting point for a new provider. |
 | `install.sh` | Adds the `source` line to `~/.zshrc` and seeds `~/.config/claudinho`. |
 
@@ -91,9 +103,11 @@ the repo changes.
 
 ### The cx provider
 
-`cx` points to a local Anthropic-compatible proxy at
-`http://localhost:20128` that serves the OpenAI GPT-6 and GPT-6.1 Codex
-models. Change the URL and key if your proxy is somewhere else. A model id
+`cx` points to OmniRoute on Proxmox at `http://192.168.13.33:20128`.
+It serves the OpenAI GPT-6 and GPT-6.1 Codex models through an
+Anthropic-compatible endpoint. No local proxy is required. The base URL
+has no `/v1` suffix because Claude Code appends `/v1/messages`.
+Keep the gateway key in the installed provider file, not in this repo. A model id
 is `cx/gpt-<version>-<tier>-<effort>`, for example `cx/gpt-6.1-sol-high`.
 The tiers are Astra, Sol, Terra and Luna, from strongest to cheapest. The
 effort suffix is `low`, `medium`, `high`, `xhigh`, `max` or `ultra`.
@@ -120,6 +134,49 @@ The file also sets the window to 1M tokens. All four models have about
 Auto-compact runs at 270K, because OpenAI bills input above 272K at a
 higher rate. Non-essential traffic is off, so a GPT-6 session sends
 nothing to Anthropic. Updates still happen when plain `claude` runs.
+
+### The Grok provider
+
+`grok` uses the existing xAI OAuth connection in OmniRoute, not the Grok CLI.
+The gateway catalog lists `xao/grok-4.7` with tool calling and a 500K-token window.
+
+| Slot | Model |
+| --- | --- |
+| Session default | `xao/grok-4.7` |
+| fable and opus | `xao/grok-4.7` |
+| sonnet | `xao/grok-4.7` |
+| haiku and background | `xao/grok-4.7` |
+
+All slots use Grok 4.7. No slot uses an older model or a synthetic effort suffix.
+The provider sets Claude Code effort to `high` and retains the wrapper's existing flags.
+An explicit `claudinho --effort xhigh` selects another client effort level.
+The gateway's imported metadata does not declare Grok 4.7 effort tiers.
+Client effort selection does not prove that the gateway forwards the same upstream effort.
+Per-alias effort differences remain unconfigured until that path passes a request-level check.
+
+Auto-compact starts at 400K within the 500K context window, as requested.
+Requests above 200K prompt tokens can use xAI's higher long-context rates.
+The compaction threshold is not a hard request limit or a measured cost guarantee.
+The provider disables non-essential traffic.
+Catalog metadata does not prove inference or tool-call behavior.
+See the [official model page](https://docs.x.ai/developers/models/grok-4.7)
+and [reasoning documentation](https://docs.x.ai/developers/model-capabilities/text/reasoning).
+
+Select Grok for one run without changing the active provider:
+
+```sh
+CLAUDINHO_PROVIDER=grok claudinho
+```
+
+Or select it for future runs:
+
+```sh
+claudinho-switch grok
+claudinho
+```
+
+Put the OmniRoute gateway key in the installed `grok.env`, as with `cx.env`.
+Do not put an xAI upstream token in this file.
 
 ## How it works
 

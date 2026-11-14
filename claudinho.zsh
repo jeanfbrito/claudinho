@@ -6,6 +6,8 @@
 # Commands:
 #   claudinho [args]            run Claude Code on the active provider, with
 #                               --dangerously-skip-permissions --chrome
+#   codexinho [args]            run Claude Code on the cx provider
+#   grokinho [args]             run Claude Code on the grok provider
 #   claudinho-switch            show providers and which one is active
 #   claudinho-switch <name>     make <name> the active provider
 #   claudinho-switch show       print the active provider file
@@ -91,6 +93,9 @@ claudinho() {
     exec "$bin" "${flags[@]}" "$@"
   )
 }
+
+alias codexinho='CLAUDINHO_PROVIDER=cx claudinho'
+alias grokinho='CLAUDINHO_PROVIDER=grok claudinho'
 
 claudinho-switch() {
   emulate -L zsh
