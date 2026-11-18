@@ -31,7 +31,7 @@ Add others with `claudinho-switch add`.
 | Path | Purpose |
 | --- | --- |
 | `claudinho.zsh` | The `claudinho` and `claudinho-switch` functions. Sourced from `~/.zshrc`. |
-| `providers/cx.env` | Provider for OmniRoute on Proxmox with the GPT-6 and GPT-6.1 models. |
+| `providers/cx.env` | Provider for OmniRoute on Proxmox with the GPT-6 and GPT-6.2 models. |
 | `providers/grok.env` | Provider for Grok 4.7 through OmniRoute. |
 | `providers/template.env` | Starting point for a new provider. |
 | `install.sh` | Adds the `source` line to `~/.zshrc` and seeds `~/.config/claudinho`. |
@@ -145,21 +145,21 @@ the repo changes.
 ### The cx provider
 
 `cx` points to OmniRoute on Proxmox at `http://192.168.13.33:20128`.
-It serves the OpenAI GPT-6 and GPT-6.1 Codex models through an
+It serves the OpenAI GPT-6 and GPT-6.2 Codex models through an
 Anthropic-compatible endpoint. No local proxy is required. The base URL
 has no `/v1` suffix because Claude Code appends `/v1/messages`.
 Keep the gateway key in the installed provider file, not in this repo. A model id
-is `cx/gpt-<version>-<tier>-<effort>`, for example `cx/gpt-6.1-sol-max`.
+is `cx/gpt-<version>-<tier>-<effort>`, for example `cx/gpt-6.2-sol-max`.
 The tiers are Astra, Sol, Terra and Luna, from strongest to cheapest. The
-effort suffix is `low`, `medium`, `high`, `xhigh`, `max` or `ultra`.
+effort suffix is `low`, `medium`, `high`, `xhigh` or `max`; the `cx` catalog has no `ultra`.
 The proxy rejects an unknown suffix with a catalog error.
 
 | Slot | Model |
 | --- | --- |
-| Session default | `cx/gpt-6.1-sol-max` |
-| opus | `cx/gpt-6.1-sol-max` |
-| fable | `cx/gpt-6-astra-max` |
-| sonnet | `cx/gpt-6.1-sol-medium` |
+| Session default | `cx/gpt-6.2-sol-max` |
+| opus | `cx/gpt-6.2-sol-max` |
+| fable | `cx/gpt-6.2-astra-max` |
+| sonnet | `cx/gpt-6.2-sol-medium` |
 | haiku and background | `cx/gpt-6-luna-low` |
 
 Sol is the coding default at a fifth of Astra's price. So the session
@@ -168,8 +168,8 @@ escalates to Astra, also at `max`. Luna is 20 times cheaper than Sol and
 handles background calls. The sonnet slot, which runs most subagents, uses
 Sol at `medium`.
 
-Sol has a 6.1 version, so its slots use 6.1. Astra and Luna have no 6.1
-version yet, so they stay on 6.
+Sol and Astra have a 6.2 version, so their slots use 6.2. Luna has no 6.2
+version yet, so it stays on 6.
 
 The file also sets the window to 1M tokens. All four models have about
 1.05M, and the proxy accepted a 260K-token request in a test.
